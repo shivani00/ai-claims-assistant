@@ -1,0 +1,19 @@
+Manipal Hospital, Bangalore
+Patient Admission Summary
+
+Patient Name: John Doe
+Patient ID: HSP-776512
+Date of Admission: 10-Jan-2026
+Date of Discharge: 14-Jan-2026
+
+Diagnosis:
+Fracture of left arm
+
+Injury Severity:
+Moderate
+
+Cause of Injury:
+Road Traffic Accident
+
+Treating Doctor:
+Dr. Ananya Sharma
