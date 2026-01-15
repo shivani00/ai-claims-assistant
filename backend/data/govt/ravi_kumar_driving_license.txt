@@ -1,0 +1,7 @@
+License Number: DL-KA-445566
+Name: Ravi Kumar
+DOB: 1988-03-22
+License Type: LMV
+Issue Date: 2012-05-10
+Expiry Date: 2032-05-10
+Status: Valid

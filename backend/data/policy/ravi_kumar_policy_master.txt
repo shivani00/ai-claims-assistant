@@ -1,0 +1,7 @@
+Policy ID: POLICY-456
+Policy Holder: Ravi Kumar
+Policy Type: Comprehensive Motor Insurance
+Policy Start Date: 2024-01-01
+Policy End Date: 2025-12-31
+Sum Insured: 400000
+Policy Status: Active

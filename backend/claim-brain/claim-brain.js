@@ -1,39 +1,37 @@
-import { ChatOllama } from "@langchain/community/chat_models/ollama";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+const API_KEY = "AIzaSyC5SNWOy8iE2kvrjwbNl0dI0xCU54De_yw"; // ⚠️ DEMO ONLY
 
-const llm = new ChatOllama({
-  model: "mistral",
-  temperature: 0
+const genAI = new GoogleGenerativeAI(API_KEY);
+
+const model = genAI.getGenerativeModel({
+  model: "gemini-2.5-flash"
 });
 
 export async function runClaimBrain(claim, availableTools) {
   const prompt = `
 You are an insurance claims intelligence agent.
 
-Your responsibilities:
-1. Identify missing or unverifiable information
-2. Decide which MCP tool to call next
-3. Ask the user ONLY if information cannot be verified
-4. Provide ASSISTIVE risk intelligence
-5. Generate a FINAL claim summary
-
 STRICT RULES:
 - NEVER approve or reject claims
 - NEVER accuse the user
 - Risk is assistive only
-- Summary must be factual and concise
+- Return ONLY valid JSON
+- No text outside JSON
+
+Responsibilities:
+1. Identify missing information
+2. Decide which MCP tool to call next
+3. Ask user ONLY if required
+4. Provide risk signals
+5. Generate final claim summary
 
 Claim State:
 ${JSON.stringify(claim, null, 2)}
 
-Available MCP Tools:
-${JSON.stringify(availableTools, null, 2)}
+Available Tools:
+${JSON.stringify(availableTools)}
 
-If action is FINAL:
-- Generate a concise claim summary
-- Mention verified facts only
-- Include incident, evidence, and readiness for next steps
-
-Return STRICT JSON ONLY:
+Return JSON in this exact format:
 
 {
   "action": "CALL_TOOL | ASK_USER | FINAL",
@@ -51,6 +49,15 @@ Return STRICT JSON ONLY:
 }
 `;
 
-  const response = await llm.invoke(prompt);
-  return JSON.parse(response.content);
+  const result = await model.generateContent(prompt);
+  const text = result.response.text().trim();
+
+  const jsonStart = text.indexOf("{");
+  const jsonEnd = text.lastIndexOf("}");
+
+  if (jsonStart === -1 || jsonEnd === -1) {
+    throw new Error("Gemini returned invalid JSON:\n" + text);
+  }
+
+  return JSON.parse(text.slice(jsonStart, jsonEnd + 1));
 }

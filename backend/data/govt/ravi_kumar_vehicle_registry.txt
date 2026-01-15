@@ -1,0 +1,5 @@
+Vehicle Number: KA09XY7788
+Owner: Ravi Kumar
+Vehicle Type: Hatchback
+Registration Date: 2018-07-14
+Status: Active

@@ -1,0 +1,5 @@
+Aadhaar Number: XXXX-XXXX-5678
+Name: Ravi Kumar
+DOB: 1988-03-22
+Address: Mysore, Karnataka
+Status: Active
