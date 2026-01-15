@@ -1,0 +1,5 @@
+Aadhaar Number: XXXX-XXXX-1234
+Name: John Doe
+DOB: 1990-06-18
+Address: Bangalore, Karnataka
+Status: Active

@@ -1,0 +1,3 @@
+Endorsement Type: Zero Depreciation
+Applicable: Yes
+Effective Date: 2024-04-01

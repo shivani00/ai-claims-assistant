@@ -1,0 +1,4 @@
+Image ID: IMG-ACC-101
+Description: Front bumper damaged, headlight broken
+Claim Type: Motor
+Severity: Medium

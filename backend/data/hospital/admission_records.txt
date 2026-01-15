@@ -1,0 +1,5 @@
+Patient Name: John Doe
+Hospital Name: Apollo Hospital Bangalore
+Admission Date: 2025-01-12
+Reason: Road Traffic Accident
+Ward: Orthopedics

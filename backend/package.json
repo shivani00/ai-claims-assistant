@@ -1,23 +1,20 @@
 {
-  "name": "claims-agentic-backend",
+  "name": "agentic-insurance-claims-backend",
   "version": "1.0.0",
-  "description": "Agentic AI powered claims intake system with MCP and RAG",
   "type": "module",
+  "description": "Agentic AI Insurance Claims Backend using MCP, RAG, Ollama",
   "scripts": {
-    "start": "node server.js",
-    "run:pipeline": "node main.js",
-    "ingest:rag": "node rag/ingest.js",
-    "start:mcp": "node mcp/server.js"
+    "start": "node chat-server.js",
+    "mcp": "node mcp/server.js",
+    "ingest": "node rag/ingest.js"
   },
   "dependencies": {
+    "@langchain/community": "^0.0.28",
     "body-parser": "^1.20.2",
     "cors": "^2.8.5",
+    "crypto": "^1.0.1",
     "express": "^4.19.2",
-    "faiss-node": "^0.5.1",
-    "langchain": "^0.1.36",
-    "node-fetch": "^3.3.2",
-    "openai": "^4.38.2",
-    "pdf-parse": "^1.1.1",
-    "uuid": "^9.0.1"
+    "multer": "^1.4.5-lts.1",
+    "node-fetch": "^3.3.2"
   }
 }

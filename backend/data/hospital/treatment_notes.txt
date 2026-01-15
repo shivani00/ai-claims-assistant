@@ -1,0 +1,4 @@
+Patient: John Doe
+Procedure: X-Ray and Fracture Immobilization
+Medicines Prescribed: Painkillers, Calcium Supplements
+Follow-up Required: Yes

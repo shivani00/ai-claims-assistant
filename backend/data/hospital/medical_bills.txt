@@ -1,0 +1,5 @@
+Patient Name: John Doe
+Hospital: Apollo Hospital Bangalore
+Total Bill Amount: 48000
+Payment Status: Pending
+Insurance Claimed: Yes

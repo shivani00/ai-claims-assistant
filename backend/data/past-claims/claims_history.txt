@@ -1,0 +1,7 @@
+Claim ID: CLM-2024-112
+Policy ID: POLICY-123
+Claim Date: 2024-11-20
+Claim Type: Motor
+Vehicle Number: KA01AB1234
+Claim Amount: 32000
+Claim Status: Approved

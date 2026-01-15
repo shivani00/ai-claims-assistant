@@ -1,0 +1,4 @@
+Image ID: IMG-INJ-55
+Description: Arm fracture with cast
+Related Claim Type: Health
+Severity: Medium

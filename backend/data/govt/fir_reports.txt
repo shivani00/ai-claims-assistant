@@ -1,0 +1,10 @@
+FIR ID: FIR-2025-001
+Name: John Doe
+Accident Date: 2025-01-12
+Accident Time: 18:45
+Location: MG Road, Bangalore
+Vehicle Number: KA01AB1234
+Accident Type: Road Collision
+Injuries Reported: Yes
+Police Station: MG Road PS
+Status: FIR Registered

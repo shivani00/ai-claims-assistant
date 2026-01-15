@@ -1,0 +1,4 @@
+Image ID: IMG-SCENE-12
+Description: Two-vehicle collision at intersection
+Road Condition: Wet
+Time: Night

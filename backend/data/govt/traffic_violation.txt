@@ -1,0 +1,5 @@
+Vehicle Number: KA01AB1234
+Violation: Over-speeding
+Date: 2024-10-01
+Fine Amount: 1500
+Fine Status: Paid

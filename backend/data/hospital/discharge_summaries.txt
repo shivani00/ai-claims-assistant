@@ -1,0 +1,5 @@
+Patient Name: John Doe
+Discharge Date: 2025-01-16
+Diagnosis: Left arm fracture
+Treatment Given: Cast applied
+Doctor: Dr. Rajesh Kumar

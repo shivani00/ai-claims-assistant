@@ -1,0 +1,9 @@
+Covered Events:
+- Road accidents
+- Vehicle collision
+- Third-party liability
+- Medical expenses due to accident
+
+Conditions:
+- Valid driving license required
+- FIR mandatory for claims above 10,000

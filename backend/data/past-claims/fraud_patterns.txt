@@ -1,0 +1,4 @@
+Common Fraud Indicators:
+- Multiple claims within short duration
+- Same accident date with different locations
+- Reused vehicle damage photos

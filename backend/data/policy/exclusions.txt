@@ -1,0 +1,4 @@
+Exclusions:
+- Drunk driving
+- Driving without license
+- Intentional damage

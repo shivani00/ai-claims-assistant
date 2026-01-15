@@ -1,0 +1,7 @@
+License Number: DL-KA-987654
+Name: John Doe
+DOB: 1990-06-18
+License Type: LMV
+Issue Date: 2015-08-10
+Expiry Date: 2030-08-10
+Status: Valid

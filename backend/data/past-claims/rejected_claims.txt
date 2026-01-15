@@ -1,0 +1,5 @@
+Claim ID: CLM-2024-078
+Policy ID: POLICY-123
+Claim Date: 2024-08-15
+Claim Type: Motor
+Reason for Rejection: Duplicate claim detected
