@@ -1,11 +1,18 @@
+import "dotenv/config";
 import express from "express";
 import bodyParser from "body-parser";
 import cors from "cors";
 import multer from "multer";
-import fetch from "node-fetch";
 
-import { createClaim, claimsDB } from "./db/claim-store.js";
-import { runClaimBrain } from "./claim-brain/claim-brain.js";
+import { claimsDB } from "./db/claim-store.js";
+
+import { initiateClaim } from "./agents/initiate-claim-agent.js";
+import { retrieveEvidence } from "./agents/evidence-retrieval-agent.js";
+import { analyzeEvidenceGaps } from "./agents/evidence-gap-agent.js";
+import { assessRisk } from "./agents/risk-agent.js";
+import { generateReport } from "./agents/report-agent.js";
+
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const app = express();
 const upload = multer({ dest: "uploads/" });
@@ -13,113 +20,163 @@ const upload = multer({ dest: "uploads/" });
 app.use(cors());
 app.use(bodyParser.json());
 
-const MCP_TOOLS = [
-  "govt",
-  "policy",
-  "hospital",
-  "pastClaims",
-  "imageAssessment"
-];
+/* ======================================================
+   GEMINI PLANNER AGENT
+====================================================== */
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const plannerModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-const MAX_TOOL_CALLS = 5;
+async function planAgents(claim) {
+  console.log("🧠 [Planner] Planning agents for claim:", claim.claimId);
 
-/**
- * Calls MCP Server tools
- */
-async function callMCPTool(tool) {
-  const urlMap = {
-    govt: "http://localhost:4000/tools/govt",
-    policy: "http://localhost:4000/tools/policy",
-    hospital: "http://localhost:4000/tools/hospital",
-    pastClaims: "http://localhost:4000/tools/past-claims",
-    imageAssessment: "http://localhost:4000/tools/image-classifier"
-  };
+  const prompt = `
+You are an AI planner for an insurance claim system.
 
-  const response = await fetch(urlMap[tool.name], {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(tool.args)
-  });
+Available agents:
+- retrieveEvidence
+- analyzeEvidenceGaps
+- assessRisk
+- generateReport
 
-  return response.json();
+You MUST always include generateReport.
+
+Claim context:
+${JSON.stringify(claim.context, null, 2)}
+
+Return JSON ONLY:
+{
+  "agents": []
+}
+`;
+
+  const result = await plannerModel.generateContent(prompt);
+  const text = result.response.text();
+
+  console.log("🧠 [Planner] Raw output:", text);
+
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
+
+  const plan = JSON.parse(text.slice(start, end + 1));
+  console.log("🧠 [Planner] Agents selected:", plan.agents);
+
+  return plan;
 }
 
-/**
- * CHAT ENDPOINT
- */
-app.post("/chat", upload.array("files"), async (req, res) => {
-  console.log("📨 /chat request received");
+/* ======================================================
+   AGENT REGISTRY
+====================================================== */
+const AGENTS = {
+  retrieveEvidence,
+  analyzeEvidenceGaps,
+  assessRisk,
+  generateReport
+};
 
-  const { claimId, message, userId } = req.body;
+/* ======================================================
+   ASYNC AGENT ORCHESTRATION (WITH LOGS)
+====================================================== */
+async function processClaimAsync(claim) {
+  console.log(`🚀 [Claim ${claim.claimId}] Async processing started`);
+
+  try {
+    const plan = await planAgents(claim);
+
+    let gaps = null;
+    let analysis = null;
+
+    for (const agentName of plan.agents) {
+      console.log(`⚙️ [Claim ${claim.claimId}] Running agent: ${agentName}`);
+
+      const agent = AGENTS[agentName];
+      if (!agent) {
+        console.warn(`⚠️ Unknown agent: ${agentName}`);
+        continue;
+      }
+
+      if (agentName === "retrieveEvidence") {
+        await agent(claim);
+        console.log("✅ Evidence retrieved");
+      }
+
+      if (agentName === "analyzeEvidenceGaps") {
+        gaps = agent(claim);
+        console.log("📊 Evidence gaps:", gaps);
+      }
+
+      if (agentName === "assessRisk") {
+        analysis = await agent(claim, {
+          present: gaps?.presentEvidence || [],
+          missing: gaps?.missingEvidence || []
+        });
+        claim.risk = analysis.risk;
+        claim.summary = analysis.summary;
+        console.log("⚠️ Risk assessment:", analysis.risk);
+      }
+
+      if (agentName === "generateReport") {
+        if (!gaps) {
+          gaps = analyzeEvidenceGaps(claim);
+        }
+        if (!analysis) {
+          analysis = { risk: claim.risk, summary: claim.summary };
+        }
+        claim.reportPath = agent(claim, gaps, analysis);
+        console.log("📄 Report generated at:", claim.reportPath);
+      }
+    }
+
+    claim.status = "COMPLETED";
+    claimsDB.set(claim.claimId, claim);
+
+    console.log(`🎉 [Claim ${claim.claimId}] Processing completed`);
+
+  } catch (err) {
+    console.error(`❌ [Claim ${claim.claimId}] Processing failed`, err);
+    claim.status = "ERROR";
+    claimsDB.set(claim.claimId, claim);
+  }
+}
+
+/* ======================================================
+   CHAT ENTRY (UI UNCHANGED)
+====================================================== */
+app.post("/chat", upload.array("files"), async (req, res) => {
+  const { userId, message, claimId } = req.body;
 
   let claim = claimId ? claimsDB.get(claimId) : null;
 
   if (!claim) {
-    claim = createClaim({ userId, message });
-  } else if (message) {
-    claim.conversation.push({ role: "user", content: message });
-    claim.pendingQuestion = null;
+    console.log("🆕 New claim initiated by:", userId);
+
+    claim = initiateClaim({ userId, message });
+
+    processClaimAsync(claim); // 🔥 ASYNC
   }
 
-  if (req.files?.length) {
-    req.files.forEach(file => {
-      claim.uploads.push({
-        filename: file.filename,
-        originalName: file.originalname,
-        type: file.mimetype
-      });
-    });
-    claim.latestUpload = req.files.at(-1);
-  }
-
-  let decision;
-  let toolCalls = 0;
-
-  while (toolCalls < MAX_TOOL_CALLS) {
-    console.log("🧠 Claim Brain invoked");
-    decision = await runClaimBrain(claim, MCP_TOOLS);
-
-    if (decision.action === "CALL_TOOL") {
-      toolCalls++;
-      console.log("🔧 Calling tool:", decision.tool.name);
-      const result = await callMCPTool(decision.tool);
-      claim.context[decision.tool.name] = result;
-      continue;
-    }
-
-    if (decision.action === "ASK_USER") {
-      claim.status = "AWAITING_USER";
-      claim.pendingQuestion = decision.message;
-      break;
-    }
-
-    if (decision.action === "FINAL") {
-      break;
-    }
-
-    break;
-  }
-
-  // Store outputs
-  if (decision?.risk) {
-    claim.risk = decision.risk;
-  }
-
-  if (decision?.summary) {
-    claim.summary = decision.summary;
-  }
-
-  claimsDB.set(claim.claimId, claim);
-
-  return res.json({
+  res.json({
     claimId: claim.claimId,
-    action: decision.action,
-    message: decision.message,
-    summary: decision.summary,
-    risk: decision.risk
+    status: claim.status || "PROCESSING"
   });
 });
 
+/* ======================================================
+   REPORT DOWNLOAD
+====================================================== */
+app.get("/claims/:id/report", (req, res) => {
+  const claim = claimsDB.get(req.params.id);
+
+  if (!claim || !claim.reportPath) {
+    console.warn("⏳ Report not ready for claim:", req.params.id);
+    return res.status(404).json({ error: "Report not ready" });
+  }
+
+  res.sendFile(claim.reportPath, { root: process.cwd() });
+});
+
+/* ======================================================
+   SERVER START
+====================================================== */
 app.listen(3000, () => {
   console.log("🤖 Chat server running on port 3000");
 });
