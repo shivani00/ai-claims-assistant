@@ -10,7 +10,7 @@ import { imageClassifierTool } from "./tools/image-classifier.js";
 const app = express();
 app.use(bodyParser.json());
 
-app.post("/tools/govt-data", govtTool);
+app.post("/tools/govt", govtTool);
 app.post("/tools/policy", policyTool);
 app.post("/tools/hospital", hospitalTool);
 app.post("/tools/past-claims", pastClaimsTool);

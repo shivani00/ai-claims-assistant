@@ -5,6 +5,10 @@ const llm = new ChatOllama({ model: "mistral", temperature: 0 });
 export async function imageClassifierTool(req, res) {
   const { filename } = req.body;
 
+  if (!filename) {
+    return res.json({ error: "No image provided" });
+  }
+
   const prompt = `
 You are an insurance image triage assistant.
 
