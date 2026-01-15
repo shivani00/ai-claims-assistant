@@ -23,6 +23,7 @@ export function createClaim({ userId, message }) {
     latestUpload: null,
 
     pendingQuestion: null,
+    summary: null,
     risk: null,
 
     status: "ACTIVE"

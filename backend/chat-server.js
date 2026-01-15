@@ -23,6 +23,9 @@ const MCP_TOOLS = [
 
 const MAX_TOOL_CALLS = 5;
 
+/**
+ * Calls MCP Server tools
+ */
 async function callMCPTool(tool) {
   const urlMap = {
     govt: "http://localhost:4000/tools/govt",
@@ -41,7 +44,12 @@ async function callMCPTool(tool) {
   return response.json();
 }
 
+/**
+ * CHAT ENDPOINT
+ */
 app.post("/chat", upload.array("files"), async (req, res) => {
+  console.log("📨 /chat request received");
+
   const { claimId, message, userId } = req.body;
 
   let claim = claimId ? claimsDB.get(claimId) : null;
@@ -68,10 +76,12 @@ app.post("/chat", upload.array("files"), async (req, res) => {
   let toolCalls = 0;
 
   while (toolCalls < MAX_TOOL_CALLS) {
+    console.log("🧠 Claim Brain invoked");
     decision = await runClaimBrain(claim, MCP_TOOLS);
 
     if (decision.action === "CALL_TOOL") {
       toolCalls++;
+      console.log("🔧 Calling tool:", decision.tool.name);
       const result = await callMCPTool(decision.tool);
       claim.context[decision.tool.name] = result;
       continue;
@@ -83,11 +93,20 @@ app.post("/chat", upload.array("files"), async (req, res) => {
       break;
     }
 
+    if (decision.action === "FINAL") {
+      break;
+    }
+
     break;
   }
 
+  // Store outputs
   if (decision?.risk) {
     claim.risk = decision.risk;
+  }
+
+  if (decision?.summary) {
+    claim.summary = decision.summary;
   }
 
   claimsDB.set(claim.claimId, claim);
@@ -96,6 +115,7 @@ app.post("/chat", upload.array("files"), async (req, res) => {
     claimId: claim.claimId,
     action: decision.action,
     message: decision.message,
+    summary: decision.summary,
     risk: decision.risk
   });
 });
