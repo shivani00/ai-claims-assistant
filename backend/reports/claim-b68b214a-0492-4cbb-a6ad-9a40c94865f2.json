@@ -1,0 +1,25 @@
+{
+  "claimId": "b68b214a-0492-4cbb-a6ad-9a40c94865f2",
+  "userId": "John Doe",
+  "evidence": {
+    "presentEvidence": [
+      "govt",
+      "policy",
+      "hospital"
+    ],
+    "missingEvidence": [
+      "imageAssessment"
+    ]
+  },
+  "risk": {
+    "level": "HIGH",
+    "confidence": 0.85,
+    "signals": [
+      "Policy history explicitly shows a previous claim (CLM-2024-078 for Policy ID POLICY-123, dated 2024-08-15) was rejected with the reason 'Duplicate claim detected'. This directly aligns with 'Multiple claims within short duration' and 'Reused vehicle damage photos' as common fraud indicators.",
+      "Government records indicate an over-speeding violation for vehicle 'KA01AB1234' on 2024-10-01 (post-dating the previously rejected claim but indicating recent driver/vehicle behavior), suggesting a propensity for risky driving behavior.",
+      "The absence of 'imageAssessment' means there is no visual evidence to verify the reported damage, which is a critical gap for assessing claim legitimacy and detecting fraud indicators like reused or manipulated images."
+    ]
+  },
+  "summary": "The claim exhibits a high risk primarily due to a documented history of a duplicate claim rejection (CLM-2024-078) for the same Policy ID (POLICY-123), which is a strong fraud indicator. Additionally, the associated vehicle has a recent over-speeding violation. The absence of an image assessment further restricts the ability to verify the physical evidence of damage, which is crucial for a comprehensive risk evaluation, especially concerning potential fraudulent practices like reusing damage photos.",
+  "generatedAt": "2026-01-15T21:12:30.455Z"
+}

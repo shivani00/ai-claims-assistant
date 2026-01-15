@@ -1,4 +1,3 @@
-import "dotenv/config";
 import express from "express";
 import bodyParser from "body-parser";
 import cors from "cors";
@@ -11,6 +10,8 @@ import { retrieveEvidence } from "./agents/evidence-retrieval-agent.js";
 import { analyzeEvidenceGaps } from "./agents/evidence-gap-agent.js";
 import { assessRisk } from "./agents/risk-agent.js";
 import { generateReport } from "./agents/report-agent.js";
+import { generateReportPDF } from "./agents/report-pdf-agent.js";
+import { detectDuplicateClaims } from "./agents/duplicate-claim-agent.js";
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
@@ -35,10 +36,12 @@ You are an AI planner for an insurance claim system.
 Available agents:
 - retrieveEvidence
 - analyzeEvidenceGaps
+- detectDuplicateClaims
 - assessRisk
 - generateReport
 
 You MUST always include generateReport.
+You SHOULD include detectDuplicateClaims when past claims or repeated entities exist.
 
 Claim context:
 ${JSON.stringify(claim.context, null, 2)}
@@ -69,6 +72,7 @@ Return JSON ONLY:
 const AGENTS = {
   retrieveEvidence,
   analyzeEvidenceGaps,
+  detectDuplicateClaims,
   assessRisk,
   generateReport
 };
@@ -104,6 +108,12 @@ async function processClaimAsync(claim) {
         console.log("📊 Evidence gaps:", gaps);
       }
 
+      if (agentName === "detectDuplicateClaims") {
+        const dup = agent(claim);
+        claim.duplicateCheck = dup;
+        console.log("🔁 Duplicate claim analysis:", dup);
+      }
+
       if (agentName === "assessRisk") {
         analysis = await agent(claim, {
           present: gaps?.presentEvidence || [],
@@ -121,8 +131,14 @@ async function processClaimAsync(claim) {
         if (!analysis) {
           analysis = { risk: claim.risk, summary: claim.summary };
         }
+
+        // JSON report
         claim.reportPath = agent(claim, gaps, analysis);
         console.log("📄 Report generated at:", claim.reportPath);
+
+        // PDF report
+        claim.reportPdfPath = generateReportPDF(claim, gaps, analysis);
+        console.log("📄 PDF report generated at:", claim.reportPdfPath);
       }
     }
 
@@ -161,7 +177,7 @@ app.post("/chat", upload.array("files"), async (req, res) => {
 });
 
 /* ======================================================
-   REPORT DOWNLOAD
+   REPORT DOWNLOAD (JSON)
 ====================================================== */
 app.get("/claims/:id/report", (req, res) => {
   const claim = claimsDB.get(req.params.id);
@@ -172,6 +188,26 @@ app.get("/claims/:id/report", (req, res) => {
   }
 
   res.sendFile(claim.reportPath, { root: process.cwd() });
+});
+
+/* ======================================================
+   REPORT DOWNLOAD (PDF)
+====================================================== */
+app.get("/claims/:id/report/pdf", (req, res) => {
+  const claim = claimsDB.get(req.params.id);
+
+  if (!claim || !claim.reportPdfPath) {
+    console.warn("⏳ PDF report not ready for claim:", req.params.id);
+    return res.status(404).json({ error: "PDF report not ready" });
+  }
+
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename=claim-${claim.claimId}.pdf`
+  );
+
+  res.sendFile(claim.reportPdfPath, { root: process.cwd() });
 });
 
 /* ======================================================
