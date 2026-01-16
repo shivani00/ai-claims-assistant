@@ -78,6 +78,17 @@ const AGENTS = {
 };
 
 /* ======================================================
+   REQUIRED AGENTS (ENFORCED)
+====================================================== */
+const REQUIRED_AGENTS = [
+  "retrieveEvidence",
+  "analyzeEvidenceGaps",
+  "detectDuplicateClaims",
+  "assessRisk",
+  "generateReport"
+];
+
+/* ======================================================
    ASYNC AGENT ORCHESTRATION (WITH LOGS)
 ====================================================== */
 async function processClaimAsync(claim) {
@@ -86,10 +97,20 @@ async function processClaimAsync(claim) {
   try {
     const plan = await planAgents(claim);
 
+    // 🔐 Enforce required agents + deduplicate
+    const finalAgents = Array.from(
+      new Set([...(plan.agents || []), ...REQUIRED_AGENTS])
+    );
+
+    console.log(
+      "🧠 [Executor] Final agent execution plan:",
+      finalAgents
+    );
+
     let gaps = null;
     let analysis = null;
 
-    for (const agentName of plan.agents) {
+    for (const agentName of finalAgents) {
       console.log(`⚙️ [Claim ${claim.claimId}] Running agent: ${agentName}`);
 
       const agent = AGENTS[agentName];

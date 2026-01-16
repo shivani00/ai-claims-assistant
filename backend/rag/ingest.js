@@ -6,8 +6,13 @@ import { OllamaEmbeddings } from "@langchain/community/embeddings/ollama";
 const DATA_ROOT = "data";
 const embeddings = new OllamaEmbeddings({ model: "nomic-embed-text" });
 
+function extractUserHint(filename) {
+  // e.g. rahul_mehta_fir.txt → rahul_mehta
+  return filename.split("_").slice(0, 2).join("_");
+}
+
 async function ingestAllDocs() {
-  console.log("🚀 Starting RAG ingestion from all data folders...");
+  console.log("🚀 Starting RAG ingestion with metadata (folder + filename)...");
 
   if (!fs.existsSync(DATA_ROOT)) {
     console.error("❌ data folder not found");
@@ -25,7 +30,7 @@ async function ingestAllDocs() {
 
   console.log("📁 Data folders found:", folders);
 
-  const texts = [];
+  const documents = [];
 
   for (const folder of folders) {
     const folderPath = path.join(DATA_ROOT, folder);
@@ -38,26 +43,33 @@ async function ingestAllDocs() {
 
       if (!fs.statSync(fullPath).isFile()) continue;
 
-      const content = fs.readFileSync(fullPath, "utf8");
+      const content = fs.readFileSync(fullPath, "utf8").trim();
+      if (!content) continue;
 
-      if (content.trim()) {
-        texts.push(content);
-        console.log(`✅ Loaded ${folder}/${file}`);
-      }
+      documents.push({
+        pageContent: content,
+        metadata: {
+          source: folder,           // govt, hospital, policy, images, etc.
+          filename: file,
+          userHint: extractUserHint(file)
+        }
+      });
+
+      console.log(`✅ Loaded ${folder}/${file}`);
     }
   }
 
-  if (texts.length === 0) {
-    console.error("❌ No valid text found in data folders");
+  if (documents.length === 0) {
+    console.error("❌ No valid documents found for ingestion");
     return;
   }
 
-  console.log(`📊 Total documents loaded: ${texts.length}`);
+  console.log(`📊 Total documents loaded: ${documents.length}`);
 
-  const store = await FaissStore.fromTexts(texts, {}, embeddings);
+  const store = await FaissStore.fromDocuments(documents, embeddings);
   await store.save("rag/faiss-index");
 
-  console.log("✅ All documents ingested into FAISS index");
+  console.log("✅ All documents ingested into FAISS with metadata");
 }
 
 await ingestAllDocs();
