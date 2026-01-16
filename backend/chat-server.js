@@ -41,7 +41,6 @@ Available agents:
 - generateReport
 
 You MUST always include generateReport.
-You SHOULD include detectDuplicateClaims when past claims or repeated entities exist.
 
 Claim context:
 ${JSON.stringify(claim.context, null, 2)}
@@ -54,8 +53,6 @@ Return JSON ONLY:
 
   const result = await plannerModel.generateContent(prompt);
   const text = result.response.text();
-
-  console.log("🧠 [Planner] Raw output:", text);
 
   const start = text.indexOf("{");
   const end = text.lastIndexOf("}");
@@ -78,9 +75,9 @@ const AGENTS = {
 };
 
 /* ======================================================
-   REQUIRED AGENTS (ENFORCED)
+   REQUIRED ORDER (DEPENDENCY SAFE)
 ====================================================== */
-const REQUIRED_AGENTS = [
+const REQUIRED_ORDER = [
   "retrieveEvidence",
   "analyzeEvidenceGaps",
   "detectDuplicateClaims",
@@ -89,7 +86,7 @@ const REQUIRED_AGENTS = [
 ];
 
 /* ======================================================
-   ASYNC AGENT ORCHESTRATION (WITH LOGS)
+   ASYNC AGENT ORCHESTRATION (ORDER FIXED)
 ====================================================== */
 async function processClaimAsync(claim) {
   console.log(`🚀 [Claim ${claim.claimId}] Async processing started`);
@@ -97,10 +94,14 @@ async function processClaimAsync(claim) {
   try {
     const plan = await planAgents(claim);
 
-    // 🔐 Enforce required agents + deduplicate
-    const finalAgents = Array.from(
-      new Set([...(plan.agents || []), ...REQUIRED_AGENTS])
-    );
+    // 🔐 Merge planner + required agents
+    const merged = new Set([
+      ...(plan.agents || []),
+      ...REQUIRED_ORDER
+    ]);
+
+    // 🔐 Enforce correct execution order
+    const finalAgents = REQUIRED_ORDER.filter(a => merged.has(a));
 
     console.log(
       "🧠 [Executor] Final agent execution plan:",
@@ -114,10 +115,7 @@ async function processClaimAsync(claim) {
       console.log(`⚙️ [Claim ${claim.claimId}] Running agent: ${agentName}`);
 
       const agent = AGENTS[agentName];
-      if (!agent) {
-        console.warn(`⚠️ Unknown agent: ${agentName}`);
-        continue;
-      }
+      if (!agent) continue;
 
       if (agentName === "retrieveEvidence") {
         await agent(claim);
@@ -130,9 +128,8 @@ async function processClaimAsync(claim) {
       }
 
       if (agentName === "detectDuplicateClaims") {
-        const dup = agent(claim);
-        claim.duplicateCheck = dup;
-        console.log("🔁 Duplicate claim analysis:", dup);
+        claim.duplicateCheck = agent(claim);
+        console.log("🔁 Duplicate claim analysis:", claim.duplicateCheck);
       }
 
       if (agentName === "assessRisk") {
@@ -142,22 +139,16 @@ async function processClaimAsync(claim) {
         });
         claim.risk = analysis.risk;
         claim.summary = analysis.summary;
-        console.log("⚠️ Risk assessment:", analysis.risk);
+        console.log("⚠️ Risk assessment:", claim.risk);
       }
 
       if (agentName === "generateReport") {
-        if (!gaps) {
-          gaps = analyzeEvidenceGaps(claim);
-        }
-        if (!analysis) {
-          analysis = { risk: claim.risk, summary: claim.summary };
-        }
+        if (!gaps) gaps = analyzeEvidenceGaps(claim);
+        if (!analysis) analysis = { risk: claim.risk, summary: claim.summary };
 
-        // JSON report
-        claim.reportPath = agent(claim, gaps, analysis);
+        claim.reportPath = generateReport(claim, gaps, analysis);
         console.log("📄 Report generated at:", claim.reportPath);
 
-        // PDF report
         claim.reportPdfPath = generateReportPDF(claim, gaps, analysis);
         console.log("📄 PDF report generated at:", claim.reportPdfPath);
       }
@@ -185,9 +176,7 @@ app.post("/chat", upload.array("files"), async (req, res) => {
 
   if (!claim) {
     console.log("🆕 New claim initiated by:", userId);
-
     claim = initiateClaim({ userId, message });
-
     processClaimAsync(claim); // 🔥 ASYNC
   }
 
@@ -203,8 +192,7 @@ app.post("/chat", upload.array("files"), async (req, res) => {
 app.get("/claims/:id/report", (req, res) => {
   const claim = claimsDB.get(req.params.id);
 
-  if (!claim || !claim.reportPath) {
-    console.warn("⏳ Report not ready for claim:", req.params.id);
+  if (!claim?.reportPath) {
     return res.status(404).json({ error: "Report not ready" });
   }
 
@@ -217,8 +205,7 @@ app.get("/claims/:id/report", (req, res) => {
 app.get("/claims/:id/report/pdf", (req, res) => {
   const claim = claimsDB.get(req.params.id);
 
-  if (!claim || !claim.reportPdfPath) {
-    console.warn("⏳ PDF report not ready for claim:", req.params.id);
+  if (!claim?.reportPdfPath) {
     return res.status(404).json({ error: "PDF report not ready" });
   }
 
