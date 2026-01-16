@@ -2,10 +2,16 @@ export function detectDuplicateClaims(claim) {
   const signals = [];
   let duplicateScore = 0;
 
-  const pastClaimsDocs = claim.context.pastClaims || [];
+  const pastClaimsContext = claim.context.pastClaims;
+
+  // ✅ Safely extract documents array
+  const pastClaimsDocs = Array.isArray(pastClaimsContext?.retrievedDocs)
+    ? pastClaimsContext.retrievedDocs
+    : [];
+
   const userId = claim.userId.toLowerCase().replace(/\s+/g, "_");
 
-  // ✅ Only consider past-claims belonging to THIS user
+  // ✅ Only consider claims belonging to THIS user
   const userSpecificClaims = pastClaimsDocs.filter(doc =>
     doc.metadata &&
     doc.metadata.source === "past-claims" &&
