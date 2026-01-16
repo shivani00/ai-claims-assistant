@@ -2,21 +2,27 @@ export function detectDuplicateClaims(claim) {
   const signals = [];
   let duplicateScore = 0;
 
-  const govt = claim.context.govt || [];
-  const pastClaims = claim.context.pastClaims || [];
+  const pastClaimsDocs = claim.context.pastClaims || [];
+  const userId = claim.userId.toLowerCase().replace(/\s+/g, "_");
 
-  // Simple heuristic checks (can be improved later)
-  if (pastClaims.length > 0) {
-    duplicateScore += 0.4;
+  // ✅ Only consider past-claims belonging to THIS user
+  const userSpecificClaims = pastClaimsDocs.filter(doc =>
+    doc.metadata &&
+    doc.metadata.source === "past-claims" &&
+    doc.metadata.userHint === userId
+  );
+
+  if (userSpecificClaims.length > 0) {
+    duplicateScore += 0.6;
     signals.push("User has prior claims history");
   }
 
-  const vehicleMatches = pastClaims.filter(
-    c => c.includes("Vehicle Number")
+  const vehicleMatches = userSpecificClaims.filter(doc =>
+    doc.pageContent.toLowerCase().includes("vehicle number")
   );
 
   if (vehicleMatches.length > 0) {
-    duplicateScore += 0.4;
+    duplicateScore += 0.3;
     signals.push("Same vehicle involved in previous claims");
   }
 

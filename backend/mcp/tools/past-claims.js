@@ -15,6 +15,6 @@ export async function pastClaimsTool(req, res) {
 
   res.json({
     source: "past-claims",
-    retrievedDocs: docs
+    retrievedDocs: docs   // ← includes metadata now
   });
 }

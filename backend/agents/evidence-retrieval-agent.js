@@ -20,6 +20,7 @@ export async function retrieveEvidence(claim) {
   claim.context.govt = await call("govt", { person: claim.userId });
   claim.context.policy = await call("policy", { holder: claim.userId });
   claim.context.hospital = await call("hospital", { patient: claim.userId });
+  claim.context.pastClaims = await call("past-claims", { person: claim.userId });
 
   if (claim.uploads.length) {
     claim.context.imageAssessment = await call("imageAssessment", {
