@@ -1,4 +1,5 @@
 import fetch from "node-fetch";
+import { queryRAG } from "../rag/query.js";
 
 const MCP_MAP = {
   govt: "http://localhost:4000/tools/govt",
@@ -16,16 +17,61 @@ async function call(tool, args) {
   return res.json();
 }
 
+function normalizeUserId(userId) {
+  return userId.toLowerCase().replace(/\s+/g, "_");
+}
+
 export async function retrieveEvidence(claim) {
+  const userHint = normalizeUserId(claim.userId);
+
+  /* ======================
+     CORE EVIDENCE (MCP)
+  ====================== */
   claim.context.govt = await call("govt", { person: claim.userId });
   claim.context.policy = await call("policy", { holder: claim.userId });
   claim.context.hospital = await call("hospital", { patient: claim.userId });
   claim.context.pastClaims = await call("past-claims", { person: claim.userId });
 
-  if (claim.uploads.length) {
+  /* ======================
+     IMAGE METADATA (RAG)
+  ====================== */
+  const imageDocs = await queryRAG(
+    `accident image damage photo ${claim.userId}`
+  );
+
+  // Only keep images belonging to THIS user
+  const userImages = imageDocs.filter(doc =>
+    doc.metadata &&
+    doc.metadata.source === "images" &&
+    doc.metadata.userHint === userHint
+  );
+
+  if (userImages.length > 0) {
+    console.log(
+      `🖼️ Found ${userImages.length} image metadata docs for user`
+    );
+
+    // Pick the most relevant image (latest / first)
+    const imageFile = userImages[0].metadata.filename;
+
     claim.context.imageAssessment = await call("imageAssessment", {
-      filename: claim.uploads.at(-1).filename
+      filename: imageFile
     });
+
+    console.log("🖼️ Image assessment completed for:", imageFile);
+  }
+
+  /* ======================
+     UPLOADED IMAGES (OVERRIDE)
+  ====================== */
+  if (claim.uploads.length) {
+    const uploadedFile = claim.uploads.at(-1).filename;
+
+    claim.context.imageAssessment = await call("imageAssessment", {
+      filename: uploadedFile
+    });
+
+    console.log("🖼️ Image assessment from uploaded file:", uploadedFile);
   }
 
   return claim;
