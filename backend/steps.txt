@@ -1,0 +1,13 @@
+1. Run Ollama on local, as we are using its embeddings models for semantic search.
+2. Then in Powershell/VSCode Terminal, first ingest the docs and build RAG context. Run command - npm run ingest
+3. Then, run command - npm run mcp. MCP server connects to RAG sources.
+Ideally, MCP will connect to external data sources and build RAG context. But for protoype, we are just simulating that, not actual
+connection to the external data sources.
+4. Then, in a new Powershell Terminal/VSCode Terminal, run command - npm start to start the backend server.
+5. Then, in CMD, run the below curl commands to test:
+a. Claim for User, Reports will be generated in reports folder - JSON format and PDF 
+C:\Users\HP>curl -X POST http://localhost:3000/chat -H "Content-Type: application/json" -d "{\"userId\":\"Ravi Kumar\",\"message\":\"Initiate claim for road accident\"}"
+{"claimId":"067727f6-eda7-4c02-b03f-55c8f01db6e9","status":"PROCESSING"}
+To get JSON response - curl http://localhost:3000/claims/<claim_id>/report
+To get PDF response - curl -o claim.pdf http://localhost:3000/claims/<claim_id>/report/pdf
+6. Files for RAG are in data folder.
