@@ -5,7 +5,7 @@ const MCP_MAP = {
   govt: "http://localhost:4000/tools/govt",
   policy: "http://localhost:4000/tools/policy",
   hospital: "http://localhost:4000/tools/hospital",
-  pastClaims: "http://localhost:4000/tools/past-claims"
+  pastClaims: "http://localhost:4000/tools/past-claims",
   imageAssessment: "http://localhost:4000/tools/image-classifier"
 };
 
