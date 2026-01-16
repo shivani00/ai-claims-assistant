@@ -5,16 +5,21 @@ const MCP_MAP = {
   govt: "http://localhost:4000/tools/govt",
   policy: "http://localhost:4000/tools/policy",
   hospital: "http://localhost:4000/tools/hospital",
-  pastClaims: "http://localhost:4000/tools/past-claims",
+  "past-claims": "http://localhost:4000/tools/past-claims",
   imageAssessment: "http://localhost:4000/tools/image-classifier"
 };
 
 async function call(tool, args) {
+  if (!MCP_MAP[tool]) {
+    throw new Error(`MCP tool not found: ${tool}`);
+  }
+
   const res = await fetch(MCP_MAP[tool], {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(args)
   });
+
   return res.json();
 }
 
@@ -31,7 +36,7 @@ export async function retrieveEvidence(claim) {
   claim.context.govt = await call("govt", { person: claim.userId });
   claim.context.policy = await call("policy", { holder: claim.userId });
   claim.context.hospital = await call("hospital", { patient: claim.userId });
-  claim.context.pastClaims = await call("pastClaims", { person: claim.userId });
+  claim.context.pastClaims = await call("past-claims", { person: claim.userId });
 
   /* ======================
      IMAGE METADATA (RAG)
@@ -40,7 +45,6 @@ export async function retrieveEvidence(claim) {
     `accident image damage photo ${claim.userId}`
   );
 
-  // Only keep images belonging to THIS user
   const userImages = imageDocs.filter(doc =>
     doc.metadata &&
     doc.metadata.source === "images" &&
@@ -48,11 +52,8 @@ export async function retrieveEvidence(claim) {
   );
 
   if (userImages.length > 0) {
-    console.log(
-      `🖼️ Found ${userImages.length} image metadata docs for user`
-    );
+    console.log(`🖼️ Found ${userImages.length} image metadata docs for user`);
 
-    // Pick the most relevant image (latest / first)
     const imageFile = userImages[0].metadata.filename;
 
     claim.context.imageAssessment = await call("imageAssessment", {
