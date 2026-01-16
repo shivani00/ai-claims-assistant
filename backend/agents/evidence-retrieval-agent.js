@@ -5,6 +5,7 @@ const MCP_MAP = {
   govt: "http://localhost:4000/tools/govt",
   policy: "http://localhost:4000/tools/policy",
   hospital: "http://localhost:4000/tools/hospital",
+  pastClaims: "http://localhost:4000/tools/past-claims"
   imageAssessment: "http://localhost:4000/tools/image-classifier"
 };
 
@@ -30,7 +31,7 @@ export async function retrieveEvidence(claim) {
   claim.context.govt = await call("govt", { person: claim.userId });
   claim.context.policy = await call("policy", { holder: claim.userId });
   claim.context.hospital = await call("hospital", { patient: claim.userId });
-  claim.context.pastClaims = await call("past-claims", { person: claim.userId });
+  claim.context.pastClaims = await call("pastClaims", { person: claim.userId });
 
   /* ======================
      IMAGE METADATA (RAG)
